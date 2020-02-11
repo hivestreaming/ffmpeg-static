@@ -1,22 +1,18 @@
-var os = require('os')
-var path = require('path')
+const os = require('os')
+const path = require('path')
+const binaries = require('./common');
 
-var binaries = Object.assign(Object.create(null), {
-  darwin: ['x64'],
-  linux: ['x64', 'ia32', 'arm64', 'arm'],
-  win32: ['x64', 'ia32']
-})
+const platform = os.platform()
+const arch = os.arch()
 
-var platform = os.platform()
-var arch = os.arch()
+let ffmpegPath = null
 
-var ffmpegPath = path.join(
-  __dirname,
-  platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-)
-
-if (!binaries[platform] || binaries[platform].indexOf(arch) === -1) {
-  ffmpegPath = null
+if (binaries[platform] || binaries[platform].indexOf(arch) > -1) {
+  ffmpegPath = path.join(
+    __dirname,
+    'bin/'+ platform + '/' + binaries[platform][binaries[platform].indexOf(arch)]+ '/',
+    platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+  )
 }
 
 module.exports = ffmpegPath

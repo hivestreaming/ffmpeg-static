@@ -1,12 +1,13 @@
 'use strict'
 
 var fs = require("fs");
-var os = require("os");
 var ProgressBar = require("progress");
 var get = require("simple-get");
-var ffmpegPath = require(".");
 var pkg = require("./package");
+var binaries = require('./common');
+var path = require('path');
 
+var ffmpegPath = './bin';
 const exitOnError = (err) => {
   console.error(err)
   process.exit(1)
@@ -76,18 +77,33 @@ const release = (
   process.env.FFMPEG_BINARY_RELEASE ||
   pkg['ffmpeg-static'].binary_release
 )
-const downloadUrl = `https://github.com/hivestreaming/ffmpeg-static/releases/download/${release}/${os.platform()}-${os.arch()}`
-const readmeUrl = `${downloadUrl}.README`
-const licenseUrl = `${downloadUrl}.LICENSE`
 
-downloadFile(downloadUrl, ffmpegPath, onProgress)
-.then(() => {
-  fs.chmodSync(ffmpegPath, 0o755) // make executable
-})
-.catch(exitOnError)
+for(var platform in binaries) {
+  if(binaries.hasOwnProperty(platform)){
+    for(var osArchIndex in binaries[platform]){
+      const osArch = binaries[platform][osArchIndex];
+      const ffmpegArchPath = path.join(ffmpegPath, `${platform}/${osArch}`)
+      fs.mkdirSync(ffmpegArchPath, {recursive: true});
+      let downloadUrl = `https://github.com/hivestreaming/ffmpeg-static/releases/download/${release}/${platform}-${osArch}`
+      let ffmpegFilePath = `${ffmpegArchPath}/ffmpeg`;
+      if(platform === 'win32') {
+        downloadUrl+='.exe';
+        ffmpegFilePath+='.exe'
+      }
+      downloadFile(downloadUrl, ffmpegFilePath, onProgress)
+      .then(() => {
+        fs.chmodSync(ffmpegFilePath, 0o755) // make executable
+      })
+      .catch(exitOnError)
+    }
 
-.then(() => downloadFile(readmeUrl, `${ffmpegPath}.README`))
-.catch(exitOnErrorOrWarnWith('Failed to download the ffmpeg README.'))
+  }
+}
 
-.then(() => downloadFile(licenseUrl, `${ffmpegPath}.LICENSE`))
-.catch(exitOnErrorOrWarnWith('Failed to download the ffmpeg LICENSE.'))
+// const readmeUrl = `${downloadUrl}.README`
+// const licenseUrl = `${downloadUrl}.LICENSE`
+// downloadFile(readmeUrl, `${ffmpegPath}.README`)
+// .catch(exitOnErrorOrWarnWith('Failed to download the ffmpeg README.'))
+
+// downloadFile(licenseUrl, `${ffmpegPath}.LICENSE`)
+// .catch(exitOnErrorOrWarnWith('Failed to download the ffmpeg LICENSE.'))
